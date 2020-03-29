@@ -58,9 +58,17 @@ checkcert version 0.1
 ```
 
 ## Automating checkcert in crontab
-Inorder to automate the use of this script with crontab refer to the following:
+First follow the steps needed to setup the ability to send an email notification with sendmail:
 * [Setting up *msmtp* for sendmail functionality](./example/msmtp.md)
-* [Adding an entry to crontab]()
+and then we can add an entry to crontab as follows:
+
+> sudo crontab -e
+
+and then add a line according to youre requirements:
+```
+*     *     *     *     1     checkcert -x -s -mail=user@gmail.com
+```
+which will run the checkcert once a week and send an email only if there is a result
 
 ---
 Copyright&copy; 2020, Andrew Turpin. The software is licensed under the MIT License.
