@@ -59,7 +59,7 @@ checkcert version 0.1
 
 ## Automating checkcert in crontab
 First follow the steps needed to setup the ability to send an email notification with sendmail:
-* [Setting up *msmtp* for sendmail functionality](./example/msmtp.md)
+* [Setting up *msmtp* for sendmail functionality](./msmtp/README.md)
 and then we can add an entry to crontab as follows:
 
 > sudo crontab -e
