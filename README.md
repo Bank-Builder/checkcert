@@ -18,18 +18,21 @@ Usage: checkcert [OPTION]...
    The same can be done to check any given external website.
  
   OPTIONS:
-    -x|-v, --expired*  list only expired certificates
-           --valid*    list only valid certificates
-    -w,    --website   the url of the website to be checked instead of doing internal check
-    -s,    --silent    does not display results but exit with code 5 if expired
+    -x|-v, --expired   list only expired certificates
+           --valid     list only valid certificates
+    -w|-l  --web*      the url of the website to be checked instead of doing internal check
+           --local*    the url of the website to be checked instead of doing internal check
+    -e,    --email     the email to use to send output as notification if expired
+    -s,    --silent    does not display results but exits with code 5 if expired
            --help      display this help and exit
            --version   display version and exit
 
    *One of these options must be selected
 
   EXAMPLE(s):
-      checkcert -w cyber-mint.com
-           will check the SSL/TLS certificate of 'cyber-mint.com' and inform if the certifcate is still valid or not
+      checkcert -w cyber-mint.com -x
+           will check the SSL/TLS certificate of 'cyber-mint.com' and respond only if the certificate is expired
+
 ```
 
 > checkcert -w cyber-mint.com
@@ -66,7 +69,7 @@ and then we can add an entry to crontab as follows:
 
 and then add a line according to your requirements:
 ```
-*     *     *     *     1     checkcert -x -s -mail=user@gmail.com
+*     *     *     *     1     checkcert -s -w cyber-mint.com --mail user@gmail.com
 ```
 which will run the checkcert once a week and send an email only if there is a result
 

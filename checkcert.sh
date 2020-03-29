@@ -12,6 +12,7 @@ _certPath="/etc/ssl/certs/"
 _webSite=""
 _expired="0"
 _valid="0"
+_sendEmail=""
 
 function displayHelp(){
     echo "Usage: checkcert [OPTION]...";
@@ -21,23 +22,29 @@ function displayHelp(){
     echo " ";
     echo "  OPTIONS:";
     
-    echo "    -x|-v, --expired*  list only expired certificates";
-    echo "           --valid*    list only valid certificates";
-    echo "    -w,    --website   the url of the website to be checked instead of doing internal check";
-    echo "    -s,    --silent    does not display results but exit with code 5 if expired";
+    echo "    -x|-v, --expired   list only expired certificates";
+    echo "           --valid     list only valid certificates";
+    echo "    -w|-l  --web*      the url of the website to be checked instead of doing internal check";
+    echo "           --local*    the url of the website to be checked instead of doing internal check";
+    echo "    -e,    --email     the email to use to send output as notification if expired";    
+    echo "    -s,    --silent    does not display results but exits with code 5 if expired";
     echo "           --help      display this help and exit";
     echo "           --version   display version and exit";
     echo "";
     echo "   *One of these options must be selected";
     echo "";
     echo "  EXAMPLE(s):";
-    echo "      checkcert -w cyber-mint.com";
-    echo "           will check the SSL/TLS certificate of 'cyber-mint.com' and inform if the certifcate is still valid or not";
+    echo "      checkcert -w cyber-mint.com -x";
+    echo "           will check the SSL/TLS certificate of 'cyber-mint.com' and respond only if the certificate is expired";
     echo "";
 }
 
 function msg(){
     if [ "$_silent" != "1" ]; then echo "$1"; fi
+}
+
+function email(){
+    echo ""
 }
 
 function dateFromX509(){
@@ -77,7 +84,7 @@ function dateFromX509(){
 
 function displayVersion(){
     echo "checkcert (bank-builder utils) version $_version";
-    echo "Copyright (C) 2019, Andrew Turpin";
+    echo "Copyright (C) 2020, Andrew Turpin";
     echo "License MIT: https://opensource.org/licenses/MIT";
     echo "";
 }
@@ -123,7 +130,11 @@ function checkWebCert(){
     fi
     w=$(echo "Q"|openssl s_client -connect cyber-mint.com:443 2>/dev/null |& openssl x509 -enddate -inform pem -noout)
     endate=$(dateFromX509 "$(echo $w|cut -d '=' -f2 )" )
-    evalCertEnddate "$_webSite" "$endate"
+    body=$(evalCertEnddate "$_webSite" "$endate" )
+    
+    if [ "$_sendEmail" != "" ]; then
+        echo "$body"
+    fi
 }
 
 # __Main__
@@ -136,12 +147,18 @@ while [[ "$#" > 0 ]]; do
         -w|--website) 
             _webSite="$2";
             shift;;
+        -l|--local) 
+            _local="$2";
+            shift;;            
         -x|--expired) 
             _expired="1"
             ;;
         -v|--valid) 
             _valid="1"
-            ;;                                
+            ;;
+        -e|--email) 
+            _sendEmail="$2";
+            shift;;                                             
         -s|--silent) 
             _silent="1"
             ;;
@@ -151,10 +168,8 @@ while [[ "$#" > 0 ]]; do
 done
 
 
-if [ "$_silent" == "0" ]; then 
-    msg "checkcert version $_version"
-    msg "======================";
-fi
+msg "checkcert version $_version"
+msg "======================";
        
 if [ "$_expired" == "1" ] || [ "$_valid" == "1" ]; then 
     checkInternalCerts
