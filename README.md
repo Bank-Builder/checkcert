@@ -15,14 +15,12 @@ git clone git@github.com:Bank-Builder/checkcert.git
 Usage: checkcert [OPTION]...
    Checks the locally installed certificates found in /etc/ssl/certs/
    and lets you know if they have expired or when they are going to.
-   The same can be done to check any given external website.
+   The same can be done to check any given external website by using the -w flag.
  
   OPTIONS:
-    -x|-v, --expired   list only expired certificates
-           --valid     list only valid certificates
-    -w|-l  --web*      the url of the website to be checked instead of doing internal check
-           --local*    the url of the website to be checked instead of doing internal check
-    -e,    --email     the email to use to send output as notification if expired
+    -x     --expired   list only expired certificates
+    -w     --web       the url of the website to be checked instead of doing internal check
+    -e,    --mail     the email to use to send output as notification if expired
     -s,    --silent    does not display results but exits with code 5 if expired
            --help      display this help and exit
            --version   display version and exit
@@ -31,8 +29,7 @@ Usage: checkcert [OPTION]...
 
   EXAMPLE(s):
       checkcert -w cyber-mint.com -x
-           will check the SSL/TLS certificate of 'cyber-mint.com' and respond only if expired
-
+           will check the SSL/TLS certificate of 'cyber-mint.com' and respond only if the certificate is expired
 ```
 
 > checkcert -w cyber-mint.com
@@ -69,9 +66,19 @@ and then we can add an entry to crontab as follows:
 
 and then add a line according to your requirements:
 ```
-*     *     *     *     1     checkcert -s -w cyber-mint.com --mail user@gmail.com
+*     *     *     *     1     checkcert --expired -s -w example.com --mail user@gmail.com
 ```
 which will run the checkcert once a week and send an email only if there is a result
+
+## Bash exit codes
+If you wanted to use *checkcert* in a bash file it may be helpful to know these exits codes.
+```
+0 - normal or succesful exit
+5 - invalid certificate on website
+6 - invalid URL for website
+7 - missing email address for -e|--mail flag
+8 - missing website URL for -w|--web flag
+```
 
 ---
 Copyright&copy; 2020, Andrew Turpin. The software is licensed under the MIT License.

@@ -5,28 +5,29 @@
 #-----------------------------------------------------------------------
 
 # Globals
-_version="0.1"
+_version="0.2"
 _silent="0"
 _today="$(date +%s)"
 _certPath="/etc/ssl/certs/"
-_webSite=""
-_expired="0"
-_valid="0"
+_x="0"
+_e="0"
 _sendEmail=""
+_w="0"
+_webSite=""
+
+
 
 function displayHelp(){
     echo "Usage: checkcert [OPTION]...";
     echo "   Checks the locally installed certificates found in /etc/ssl/certs/";
     echo "   and lets you know if they have expired or when they are going to.";
-    echo "   The same can be done to check any given external website.";
+    echo "   The same can be done to check any given external website by using the -w flag.";
     echo " ";
     echo "  OPTIONS:";
     
-    echo "    -x|-v, --expired   list only expired certificates";
-    echo "           --valid     list only valid certificates";
-    echo "    -w|-l  --web*      the url of the website to be checked instead of doing internal check";
-    echo "           --local*    the url of the website to be checked instead of doing internal check";
-    echo "    -e,    --email     the email to use to send output as notification if expired";    
+    echo "    -x     --expired   list only expired certificates";
+    echo "    -w     --web       the url of the website to be checked instead of doing internal check";
+    echo "    -e,    --mail     the email to use to send output as notification if expired";    
     echo "    -s,    --silent    does not display results but exits with code 5 if expired";
     echo "           --help      display this help and exit";
     echo "           --version   display version and exit";
@@ -40,11 +41,7 @@ function displayHelp(){
 }
 
 function msg(){
-    if [ "$_silent" != "1" ]; then echo "$1"; fi
-}
-
-function email(){
-    echo ""
+    if [ "$_silent" != "1" ]; then echo -e "$*"; fi
 }
 
 function dateFromX509(){
@@ -89,51 +86,76 @@ function displayVersion(){
     echo "";
 }
 
+function displayResult() {
+    if [ "$_silent" != "1" ]; then echo -e "$*"; fi
+    email='"Subject: checkcert\n\n'$*'\n------\ncheckcert ver: '$_version' - https://github.com/Bank-Builder/checkcert\n"'
+    
+    if [ "$_sendEmail" != "" ]; then
+            s="printf "$email" | sendmail $_sendEmail 2>/dev/null"
+            eval "$s" > /dev/null 2>&1
+    fi
+}
+
 function evalCertEnddate(){
 # $1 = certificate name
 # $2 = endate as yyyy-mm-dd
 # returns a string based on -x|-v flags
     enddate=$(date -d "$2" +%s)
-    
     if [ "$_today" -ge "$enddate" ]; then
-        
-        if [ "$_expired" == "1" ] || [ "$_webSite" != "" ]; then
-            msg "$1 expired on: "$endate
-            if [ "$_webSite" != "" ] && [ "$_silent" = "1" ];then
-                exit 5;
-            fi
-        fi    
-    fi
+        echo "$1 expired on: "$endate
+        return 1
+    fi    
+    
     if [ "$_today" -lt "$enddate" ]; then
-        if [ "$_valid" == "1" ] || [ "$_webSite" != "" ]; then
-            diff=$(( $enddate - $_today ))
-            left="$(($diff / 3600 / 24)) days $(($diff % (3600 / 24 ) )) hrs, $((($diff / 60) % 60)) mins and $(($diff % 60)) secs left." 
-            msg "$1 valid until: "$(date -d @$enddate +"%Y-%m-%d")
-            if [ "$_webSite" != "" ] && [ "$_silent" = "1" ];then
-                exit 0;
-            fi
-        fi    
+        diff=$(( $enddate - $_today ))
+        left="$(($diff / 3600 / 24)) days $(($diff % (3600 / 24 ) )) hrs, $((($diff / 60) % 60)) mins and $(($diff % 60)) secs left." 
+        echo "$1 valid until: "$(date -d @$enddate +"%Y-%m-%d")
+        return 0
     fi  
 }
 
 function checkInternalCerts {
-for cert in /etc/ssl/certs/* ; do
-  endatestr=$(openssl x509 -noout -enddate -in $cert)
-  endate=$(dateFromX509 "$endatestr")
-  evalCertEnddate "$cert" "$endate"
-done
+    body=""
+    for cert in /etc/ssl/certs/* ; do
+        endatestr=$(openssl x509 -noout -enddate -in $cert)
+        endate=$(dateFromX509 "$endatestr")
+        b=$(evalCertEnddate "$cert" "$endate")
+        _result=$?
+          
+        #show in accordance with the -x flag (invalid cert sets $_result=1)
+        if [ "$_x" == "1" ] && [ "$_result" == "1" ]; then
+            body=$body$b"\n"
+        elif [ "$_x" == "0" ];  then
+            body=$body$b"\n"
+        fi
+    done
+    displayResult $body
 }
 
+
+
 function checkWebCert(){
-    if [ "$_silent" == "0" ]; then
-      msg "Checking website: $1"
-    fi
-    w=$(echo "Q"|openssl s_client -connect cyber-mint.com:443 2>/dev/null |& openssl x509 -enddate -inform pem -noout)
-    endate=$(dateFromX509 "$(echo $w|cut -d '=' -f2 )" )
-    body=$(evalCertEnddate "$_webSite" "$endate" )
+    msg "checkcert version $_version"
+    msg "======================"
+    msg "Checking website: $1"
+    msg ""
     
-    if [ "$_sendEmail" != "" ]; then
-        echo "$body"
+    w=$(echo "Q"|openssl s_client -connect $_webSite:443 2>/dev/null |& openssl x509 -enddate -inform pem -noout 2>/dev/null)
+    endate=$(dateFromX509 "$(echo $w|cut -d '=' -f2 )" )
+    if [ "$endate" == "--" ]; then 
+        msg "Error: invalid url"
+        exit 6
+    fi
+    
+    body=$(evalCertEnddate "$_webSite" "$endate" )
+    _result="$?"
+
+    #show in accordance with the -x flag (invalid cert sets $_result=1)
+    if [ "$_x" == "1" ] && [ "$_result" == "1" ]; then
+        displayResult "$body"
+        exit 5
+    elif [ "$_x" == "0" ]; then
+        displayResult "$body"
     fi
 }
 
@@ -145,40 +167,40 @@ while [[ "$#" > 0 ]]; do
         --version) 
             displayVersion; exit 0;;
         -w|--website) 
-            _webSite="$2";
+            _w="1"
+            _webSite="$2"
             shift;;
-        -l|--local) 
-            _local="$2";
-            shift;;            
         -x|--expired) 
-            _expired="1"
+            _x="1"
             ;;
-        -v|--valid) 
-            _valid="1"
-            ;;
-        -e|--email) 
-            _sendEmail="$2";
+        -e|--mail) 
+            _e="1"
+            _sendEmail="$2"
             shift;;                                             
         -s|--silent) 
             _silent="1"
             ;;
-         *) echo "Unknown parameter passed: $1"; exit 1;;
+         *) echo -e "Unknown parameter passed: $1\nTry 'checkcert --help' for help"; exit 1;;
     esac; 
     shift; 
 done
 
 
-msg "checkcert version $_version"
-msg "======================";
-       
-if [ "$_expired" == "1" ] || [ "$_valid" == "1" ]; then 
-    checkInternalCerts
-else 
-    if [ "$_webSite" != "" ]; then 
-        checkWebCert "$_webSite";
+if [ "$_e" == "1" ] && [ "$_sendEmail" == "" ]; then
+    echo -e "Missing parameter [email address]\nTry 'checkcert --help' for help"
+    exit 7
+fi
+
+
+if [ "$_w" == "1" ]; then
+    if [ "$_webSite" != "" ]; then
+        checkWebCert "$_webSite"
     else
-        echo "Try checkcert --help for help";
-    fi;    
+        echo -e "Missing parameter [website]\nTry 'checkcert --help' for help"
+        exit 8       
+    fi    
+else
+    checkInternalCerts
 fi
 
 #FINISH
