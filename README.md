@@ -64,7 +64,7 @@ and then we can add an entry to crontab as follows:
 
 > sudo crontab -e
 
-and then add a line according to youre requirements:
+and then add a line according to your requirements:
 ```
 *     *     *     *     1     checkcert -x -s -mail=user@gmail.com
 ```
