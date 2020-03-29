@@ -31,7 +31,7 @@ Usage: checkcert [OPTION]...
 
   EXAMPLE(s):
       checkcert -w cyber-mint.com -x
-           will check the SSL/TLS certificate of 'cyber-mint.com' and respond only if the certificate is expired
+           will check the SSL/TLS certificate of 'cyber-mint.com' and respond only if expired
 
 ```
 
