@@ -32,7 +32,9 @@ Usage: checkcert [OPTION]...
            will check the SSL/TLS certificate of 'cyber-mint.com' and inform if the certifcate is still valid or not
 ```
 
-The out of the help example might yield something like:
+> checkcert -w cyber-mint.com
+
+The example above might yield something like:
 ```
 checkcert version 0.1
 ======================
@@ -61,5 +63,4 @@ Inorder to automate the use of this script with crontab refer to the following:
 * [Adding an entry to crontab]()
 
 ---
-(c)Copyright 2020, Andrew Turpin
-Software Licensed under MIT License.
+Copyright&copy; 2020, Andrew Turpin. The software is licensed under the MIT License.
