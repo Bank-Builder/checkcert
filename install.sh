@@ -13,21 +13,39 @@ function ckcert_install {
     echo "Install dependencies ..."
     sudo apt install msmtp
     sudo cp ./checkcert.sh /usr/bin/checkcert
-    sudo chmod +x /usr/bin/checkcert.sh
+    sudo chmod +x /usr/bin/checkcert
     sudo mkdir -p /var/lib/checkcert
-    sudo cp ./* /var/lib/checkcert/.
-    #sudo cp ./checkcert.conf /etc/checkcert.conf
-    echo "Installation complete ... edit /etc/checkcert.conf to suit your needs"
-    ls /var/lib/checkcert/*
+    sudo cp -r ./* /var/lib/checkcert/.
+
+    echo "Installation complete. See /var/lib/checkcert/README.md for instructions."
+    echo "Run 'checkcert --help' for help"
     echo ""
 }
 
-function ckcert_remove {
+function ckcert_uninstall {
     echo "Removing checkcert installation..."
+    sudo rm /usr/bin/checkcert
+    sudo rm -r /var/lib/checkcert
+    echo ""    
 }
 
 # Main
 
-ckcert_install
-
+if [ "$1" == "" ]; then
+    ckcert_install
+    exit 0;
+else
+    if [ "$1" == "--uninstall" ]; then
+        ckcert_uninstall
+        exit 0;
+    fi        
+fi
+echo "Usage: ./install.sh [OPTION]..."
+echo "  Installs or uninstalls checkcert from your system."
+echo " "
+echo "    OPTIONS:"
+echo "      [none]        performs normal installation"
+echo "      --uninstall   will completely uninstall the application"
+echo ""
+exit 1
 
